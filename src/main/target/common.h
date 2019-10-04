@@ -18,20 +18,20 @@
 #pragma once
 
 #if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1024
+#define DYNAMIC_HEAP_SIZE 1024
 #else
-#define DYNAMIC_HEAP_SIZE   2048
+#define DYNAMIC_HEAP_SIZE 2048
 #endif
 
 #define I2C1_OVERCLOCK false
 #define I2C2_OVERCLOCK false
-#define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
+#define USE_I2C_PULLUP // Enable built-in pullups on all boards in case external ones are too week
 
 #define USE_RX_PPM
 #define USE_SERIAL_RX
-#define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
-#define USE_SERIALRX_SBUS       // Very common protocol
-#define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
+#define USE_SERIALRX_SPEKTRUM // Cheap and fairly common protocol
+#define USE_SERIALRX_SBUS     // Very common protocol
+#define USE_SERIALRX_IBUS     // Cheap FlySky & Turnigy receivers
 #define USE_SERIALRX_FPORT
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
@@ -58,9 +58,9 @@
 #define USE_MR_BRAKING_MODE
 
 #if defined(STM_FAST_TARGET)
-#define SCHEDULER_DELAY_LIMIT           10
+#define SCHEDULER_DELAY_LIMIT 10
 #else
-#define SCHEDULER_DELAY_LIMIT           100
+#define SCHEDULER_DELAY_LIMIT 100
 #endif
 
 #if (FLASH_SIZE > 256)
@@ -80,6 +80,7 @@
 #define USE_OPFLOW
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
+#define USE_OPFLOW_PMW3901
 
 #define USE_PITOT
 #define USE_PITOT_MS4525
@@ -105,7 +106,6 @@
 #define NAV_AUTO_MAG_DECLINATION_PRECISE
 
 #define USE_D_BOOST
-
 
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
@@ -143,7 +143,7 @@
 #define USE_SERIALRX_CRSF
 #define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
-#define NAV_MAX_WAYPOINTS       60
+#define NAV_MAX_WAYPOINTS 60
 #define USE_RCDEVICE
 #define USE_PITOT
 #define USE_PITOT_ADC

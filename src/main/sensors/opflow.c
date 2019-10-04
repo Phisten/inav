@@ -70,55 +70,65 @@ static timeMs_t opflowCalibrationStartedAt;
 static float opflowCalibrationBodyAcc;
 static float opflowCalibrationFlowAcc;
 
-#define OPFLOW_SQUAL_THRESHOLD_HIGH     35      // TBD
-#define OPFLOW_SQUAL_THRESHOLD_LOW      10      // TBD
-#define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
-#define OPFLOW_CALIBRATE_TIME_MS        30000   // 30 second calibration time
+#define OPFLOW_SQUAL_THRESHOLD_HIGH 35  // TBD
+#define OPFLOW_SQUAL_THRESHOLD_LOW 10   // TBD
+#define OPFLOW_UPDATE_TIMEOUT_US 200000 // At least 5Hz updates required
+#define OPFLOW_CALIBRATE_TIME_MS 30000  // 30 second calibration time
 
 PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 1);
 
 PG_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig,
-    .opflow_hardware = OPFLOW_NONE,
-    .opflow_align = CW0_DEG_FLIP,
-    .opflow_scale = 10.5f,
-);
+                  .opflow_hardware = OPFLOW_NONE,
+                  .opflow_align = CW0_DEG_FLIP,
+                  .opflow_scale = 10.5f, );
 
-static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
+static bool opflowDetect(opflowDev_t *dev, uint8_t opflowHardwareToUse)
 {
     opticalFlowSensor_e opflowHardware = OPFLOW_NONE;
     requestedSensors[SENSOR_INDEX_OPFLOW] = opflowHardwareToUse;
 
-    switch (opflowHardwareToUse) {
-        case OPFLOW_FAKE:
+    switch (opflowHardwareToUse)
+    {
+    case OPFLOW_FAKE:
 #if defined(USE_OPFLOW_FAKE)
-            if (fakeOpflowDetect(dev)) {
-                opflowHardware = OPFLOW_FAKE;
-            }
+        if (fakeOpflowDetect(dev))
+        {
+            opflowHardware = OPFLOW_FAKE;
+        }
 #endif
-            break;
+        break;
+    case OPFLOW_PMW3901:
+        if (virtualOpflowDetect(dev, &opflowPmw3901Vtable))
+        {
+            opflowHardware = OPFLOW_PMW3901;
+        }
+        break;
 
-        case OPFLOW_CXOF:
+    case OPFLOW_CXOF:
 #if defined(USE_OPFLOW_CXOF)
-            if (virtualOpflowDetect(dev, &opflowCxofVtable)) {
-                opflowHardware = OPFLOW_CXOF;
-            }
+        if (virtualOpflowDetect(dev, &opflowCxofVtable))
+        {
+            opflowHardware = OPFLOW_CXOF;
+        }
 #endif
-            break;
+        break;
 
-        case OPFLOW_MSP:
+    case OPFLOW_MSP:
 #if defined(USE_OPFLOW_MSP)
-            if (virtualOpflowDetect(dev, &opflowMSPVtable)) {
-                opflowHardware = OPFLOW_MSP;
-            }
+        if (virtualOpflowDetect(dev, &opflowMSPVtable))
+        {
+            opflowHardware = OPFLOW_MSP;
+        }
 #endif
-            break;
+        break;
 
-        case OPFLOW_NONE:
-            opflowHardware = OPFLOW_NONE;
-            break;
+    case OPFLOW_NONE:
+        opflowHardware = OPFLOW_NONE;
+        break;
     }
 
-    if (opflowHardware == OPFLOW_NONE) {
+    if (opflowHardware == OPFLOW_NONE)
+    {
         sensorsClear(SENSOR_OPFLOW);
         return false;
     }
@@ -137,11 +147,13 @@ static void opflowZeroBodyGyroAcc(void)
 
 bool opflowInit(void)
 {
-    if (!opflowDetect(&opflow.dev, opticalFlowConfig()->opflow_hardware)) {
+    if (!opflowDetect(&opflow.dev, opticalFlowConfig()->opflow_hardware))
+    {
         return false;
     }
 
-    if (!opflow.dev.initFn(&opflow.dev)) {
+    if (!opflow.dev.initFn(&opflow.dev))
+    {
         sensorsClear(SENSOR_OPFLOW);
         return false;
     }
@@ -167,25 +179,29 @@ void opflowUpdate(timeUs_t currentTimeUs)
     if (!opflow.dev.updateFn)
         return;
 
-    if (opflow.dev.updateFn(&opflow.dev)) {
+    if (opflow.dev.updateFn(&opflow.dev))
+    {
         // Indicate valid update
         opflow.isHwHealty = true;
         opflow.lastValidUpdate = currentTimeUs;
         opflow.rawQuality = opflow.dev.rawData.quality;
 
         // Handle state switching
-        switch (opflow.flowQuality) {
-            case OPFLOW_QUALITY_INVALID:
-                if (opflow.dev.rawData.quality >= OPFLOW_SQUAL_THRESHOLD_HIGH) {
-                    opflow.flowQuality = OPFLOW_QUALITY_VALID;
-                }
-                break;
+        switch (opflow.flowQuality)
+        {
+        case OPFLOW_QUALITY_INVALID:
+            if (opflow.dev.rawData.quality >= OPFLOW_SQUAL_THRESHOLD_HIGH)
+            {
+                opflow.flowQuality = OPFLOW_QUALITY_VALID;
+            }
+            break;
 
-            case OPFLOW_QUALITY_VALID:
-                if (opflow.dev.rawData.quality <= OPFLOW_SQUAL_THRESHOLD_LOW) {
-                    opflow.flowQuality = OPFLOW_QUALITY_INVALID;
-                }
-                break;
+        case OPFLOW_QUALITY_VALID:
+            if (opflow.dev.rawData.quality <= OPFLOW_SQUAL_THRESHOLD_LOW)
+            {
+                opflow.flowQuality = OPFLOW_QUALITY_INVALID;
+            }
+            break;
         }
 
         // Opflow updated. Assume zero valus unless further processing sets otherwise
@@ -196,13 +212,15 @@ void opflowUpdate(timeUs_t currentTimeUs)
 
         // In the following code we operate deg/s and do conversion to rad/s in the last step
         // Calculate body rates
-        if (opflow.gyroBodyRateTimeUs > 0) {
+        if (opflow.gyroBodyRateTimeUs > 0)
+        {
             opflow.bodyRate[X] = opflow.gyroBodyRateAcc[X] / opflow.gyroBodyRateTimeUs;
             opflow.bodyRate[Y] = opflow.gyroBodyRateAcc[Y] / opflow.gyroBodyRateTimeUs;
         }
 
         // If quality of the flow from the sensor is good - process further
-        if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
+        if (opflow.flowQuality == OPFLOW_QUALITY_VALID)
+        {
             const float integralToRateScaler = (opticalFlowConfig()->opflow_scale > 0.01f) ? (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale : 0.0f;
 
             // Apply sensor alignment
@@ -220,20 +238,24 @@ void opflowUpdate(timeUs_t currentTimeUs)
         }
 
         // Process calibration
-        if (opflowIsCalibrating) {
+        if (opflowIsCalibrating)
+        {
             // Blink LED
             LED0_TOGGLE;
 
-            if ((millis() - opflowCalibrationStartedAt) > OPFLOW_CALIBRATE_TIME_MS) {
+            if ((millis() - opflowCalibrationStartedAt) > OPFLOW_CALIBRATE_TIME_MS)
+            {
                 // Finish calibration if we accumulated more than 3600 deg of rotation over 30 seconds
-                if (opflowCalibrationBodyAcc > 3600.0f) {
+                if (opflowCalibrationBodyAcc > 3600.0f)
+                {
                     opticalFlowConfigMutable()->opflow_scale = opflowCalibrationFlowAcc / opflowCalibrationBodyAcc;
                     saveConfigAndNotify();
                 }
 
                 opflowIsCalibrating = 0;
             }
-            else if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
+            else if (opflow.flowQuality == OPFLOW_QUALITY_VALID)
+            {
                 // Ongoing calibration - accumulate body and flow rotation magniture if opflow quality is good enough
                 const float invDt = 1.0e6 / opflow.dev.rawData.deltaTime;
                 opflowCalibrationBodyAcc += sqrtf(sq(opflow.bodyRate[X]) + sq(opflow.bodyRate[Y]));
@@ -250,9 +272,11 @@ void opflowUpdate(timeUs_t currentTimeUs)
         // Zero out gyro accumulators to calculate rotation per flow update
         opflowZeroBodyGyroAcc();
     }
-    else {
+    else
+    {
         // No new data available
-        if (opflow.isHwHealty && ((currentTimeUs - opflow.lastValidUpdate) > OPFLOW_UPDATE_TIMEOUT_US)) {
+        if (opflow.isHwHealty && ((currentTimeUs - opflow.lastValidUpdate) > OPFLOW_UPDATE_TIMEOUT_US))
+        {
             opflow.isHwHealty = false;
 
             opflow.flowQuality = OPFLOW_QUALITY_INVALID;
@@ -274,7 +298,8 @@ void opflowGyroUpdateCallback(timeUs_t gyroUpdateDeltaUs)
     if (!opflow.isHwHealty)
         return;
 
-    for (int axis = 0; axis < 2; axis++) {
+    for (int axis = 0; axis < 2; axis++)
+    {
         opflow.gyroBodyRateAcc[axis] += gyro.gyroADCf[axis] * gyroUpdateDeltaUs;
     }
 
