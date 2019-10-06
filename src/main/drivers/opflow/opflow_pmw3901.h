@@ -24,22 +24,4 @@
 
 #pragma once
 
-#include "common/time.h"
-#include "drivers/sensor.h"
-
-struct opflowDev_s;
-
-typedef struct opflowData_s
-{
-    timeDelta_t deltaTime;  // Integration timeframe of motionX/Y
-    int32_t flowRateRaw[3]; // Flow rotation in raw sensor uints (per deltaTime interval). Use dummy 3-rd axis (always zero) for compatibility with alignment functions
-    int16_t quality;
-} opflowData_t;
-
-typedef struct opflowDev_s
-{
-    busDevice_t *busDev;
-    sensorOpflowInitFuncPtr initFn;
-    sensorOpflowUpdateFuncPtr updateFn;
-    opflowData_t rawData;
-} opflowDev_t;
+bool pmw3901OpflowDetect(opflowDev_t *dev);

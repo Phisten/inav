@@ -45,6 +45,7 @@
 #include "drivers/time.h"
 
 #include "drivers/opflow/opflow.h"
+#include "drivers/opflow/opflow_pmw3901.h"
 #include "drivers/opflow/opflow_fake.h"
 #include "drivers/opflow/opflow_virtual.h"
 
@@ -98,7 +99,7 @@ static bool opflowDetect(opflowDev_t *dev, uint8_t opflowHardwareToUse)
 #endif
         break;
     case OPFLOW_PMW3901:
-        if (virtualOpflowDetect(dev, &opflowPmw3901Vtable))
+        if (pmw3901OpflowDetect(dev))
         {
             opflowHardware = OPFLOW_PMW3901;
         }
