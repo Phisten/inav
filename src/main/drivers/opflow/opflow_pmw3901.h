@@ -24,4 +24,9 @@
 
 #pragma once
 
+#include "drivers/opflow/opflow.h"
+
 bool pmw3901OpflowDetect(opflowDev_t *dev);
+bool pmw3901OpflowInit(opflowDev_t *dev);
+void pmw3901RegisterInit(opflowDev_t *dev);
+bool pmw3901OpflowUpdate(opflowDev_t *dev);

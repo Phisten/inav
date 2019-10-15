@@ -161,6 +161,7 @@ COMMON_SRC = \
             drivers/rangefinder/rangefinder_virtual.c \
             drivers/opflow/opflow_fake.c \
             drivers/opflow/opflow_virtual.c \
+            drivers/opflow/opflow_pmw3901.c \
             drivers/vtx_common.c \
             io/rangefinder_msp.c \
             io/rangefinder_benewake.c \

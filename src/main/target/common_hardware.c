@@ -297,4 +297,10 @@
     #endif
 #endif
 
+#if defined(USE_OPFLOW)
+    #if defined(USE_OPFLOW_PMW3901)
+        BUSDEV_REGISTER_SPI(busdev_pmw3901,     DEVHW_PMW3901,      PMW3901_SPI_BUS,    PMW3901_CS_PIN,     NONE,   DEVFLAGS_NONE);
+    #endif
+#endif
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

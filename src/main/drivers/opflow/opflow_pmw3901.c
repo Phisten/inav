@@ -34,9 +34,11 @@
 
 #include "common/maths.h"
 
-#include "io/serial.h"
+//#include "io/serial.h"
 
 #if defined(USE_OPFLOW_PMW3901)
+#include "drivers/bus.h"
+#include "drivers/opflow/opflow_pmw3901.h"
 #include "drivers/opflow/opflow_virtual.h"
 #include "drivers/time.h"
 #include "io/opflow.h"
@@ -59,85 +61,82 @@ typedef struct __attribute__((packed))
     uint8_t footer; // 0xAA
 } pmw3901Packet_t;
 
-static bool pmw3901OpflowDetect(void)
+bool pmw3901OpflowDetect(opflowDev_t *dev)
 {
-    busDevice_t *busDev = opflow->dev->busDev;
-    busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_PMW3901, opflow->magSensorToUse, OWNER_COMPASS);
+    dev->busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_PMW3901, 0, OWNER_FLOW);
+    busDevice_t *busDev = dev->busDev;
 
     if (busDev == NULL)
     {
         return false;
     }
-    opflow->dev->initFn = pmw3901OpflowInit;
-    opflow->dev->updateFn = pmw3901OpflowUpdate;
+    dev->initFn = pmw3901OpflowInit;
+    dev->updateFn = pmw3901OpflowUpdate;
     return true;
 }
 
-static bool pmw3901OpflowInit(void)
+bool pmw3901OpflowInit(opflowDev_t *dev)
 {
-
-    busDevice_t *busDev = opflow->dev->busDev;
+    busDevice_t *busDev = dev->busDev;
     //const gyroFilterAndRateConfig_t *config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     //gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
-    busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
-    debug[0] = 100;
-
-    // Make sure the SPI bus is reset
-    // digitalWrite(_cs, HIGH);
+    //busSetSpeed(busDev, BUS_SPEED_FAST);
+    delay(50);
+    // ioTag_t csnPin = busDev->busdev.spi.csnPin;
+    // IOHi(csnPin);
     // delay(1);
-    // digitalWrite(_cs, LOW);
+    // IOLo(csnPin);
     // delay(1);
-    // digitalWrite(_cs, HIGH);
+    // IOHi(csnPin);
     // delay(1);
 
     // Device Reset
     busWrite(busDev, 0x3a, 0x5a);
+    delay(50);
 
-    delay(5);
 
     //timeUs_t
-    uint8_t chipId = busRead(busDev, 0x00);
-    uint8_t dIpihc = busRead(busDev, 0x5F);
+    uint8_t chipId = 100;
+    for (int attempts = 0; attempts < 5; attempts++) {
+        uint8_t tchipId;
 
-    //busWrite(busDev, MPU_RA_SIGNAL_PATH_RESET, BIT_GYRO | BIT_ACC | BIT_TEMP);
+        delay(100);
+
+
+        // IOLo(csnPin);
+        // delayMicroseconds(50);
+        busRead(busDev, 0x00, &tchipId);
+        delayMicroseconds(200);
+        // IOHi(csnPin);
+        // delayMicroseconds(200);
+        if (tchipId != 0xFF) {
+            chipId = tchipId;
+        }
+    }
+    uint8_t dIpihc = 100;
+    busRead(busDev, 0x5F, &dIpihc);
+    delayMicroseconds(200);
+
+    
+
+    DEBUG_SET(DEBUG_FLOW_RAW, 4, (chipId));
+    DEBUG_SET(DEBUG_FLOW_RAW, 5, (dIpihc));
+    // delayMicroseconds(15);
+    delay(5);
+    pmw3901RegisterInit(dev);
+    delay(5);
     delayMicroseconds(15);
 
-    // Clock Source PPL with Z axis gyro reference
-    //busWrite(busDev, MPU_RA_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
-    delayMicroseconds(15);
-
-    // Disable Primary I2C Interface
-
-    // Accel Sample Rate 1kHz
-    // Gyroscope Output Rate =  1kHz when the DLPF is enabled
-
-    // Gyro +/- 2000 DPS Full Scale
-
-    // Accel +/- 16 G Full Scale
-
-    // Accel and Gyro DLPF Setting
-
-    busSetSpeed(busDev, BUS_SPEED_FAST);
-
-    if (!portConfig)
-    {
-        return false;
-    }
-
-    flowPort = openSerialPort(portConfig->identifier, FUNCTION_OPTICAL_FLOW, NULL, NULL, baudRates[BAUD_19200], MODE_RX, SERIAL_NOT_INVERTED);
-    if (!flowPort)
-    {
-        return false;
-    }
-
-    bufferPtr = 0;
+    //busSetSpeed(busDev, BUS_SPEED_FAST);
 
     return true;
 }
 
-static void pmw3901RegisterInit(void)
+void pmw3901RegisterInit(opflowDev_t *dev)
 {
+    //DEBUG_SET(DEBUG_FLOW_RAW, 6, 4);
+    busDevice_t *busDev = dev->busDev;
     busWrite(busDev, 0x7F, 0x00);
     busWrite(busDev, 0x61, 0xAD);
     busWrite(busDev, 0x7F, 0x03);
@@ -153,75 +152,27 @@ static void pmw3901RegisterInit(void)
     busWrite(busDev, 0x44, 0x1B);
     busWrite(busDev, 0x40, 0xBF);
     busWrite(busDev, 0x4E, 0x3F);
-
-    // busWrite(busDev, 0x7F, 0x08);
-    // busWrite(busDev, 0x65, 0x20);
-    // busWrite(busDev, 0x6A, 0x18);
-    // busWrite(busDev, 0x7F, 0x09);
-    // busWrite(busDev, 0x4F, 0xAF);
-    // busWrite(busDev, 0x5F, 0x40);
-    // busWrite(busDev, 0x48, 0x80);
-    // busWrite(busDev, 0x49, 0x80);
-    // busWrite(busDev, 0x57, 0x77);
-    // busWrite(busDev, 0x60, 0x78);
-    // busWrite(busDev, 0x61, 0x78);
-    // busWrite(busDev, 0x62, 0x08);
-    // busWrite(busDev, 0x63, 0x50);
-    // busWrite(busDev, 0x7F, 0x0A);
-    // busWrite(busDev, 0x45, 0x60);
-    // busWrite(busDev, 0x7F, 0x00);
-    // busWrite(busDev, 0x4D, 0x11);
-    // busWrite(busDev, 0x55, 0x80);
-    // busWrite(busDev, 0x74, 0x1F);
-    // busWrite(busDev, 0x75, 0x1F);
-    // busWrite(busDev, 0x4A, 0x78);
-    // busWrite(busDev, 0x4B, 0x78);
-    // busWrite(busDev, 0x44, 0x08);
-    // busWrite(busDev, 0x45, 0x50);
-    // busWrite(busDev, 0x64, 0xFF);
-    // busWrite(busDev, 0x65, 0x1F);
-    // busWrite(busDev, 0x7F, 0x14);
-    // busWrite(busDev, 0x65, 0x60);
-    // busWrite(busDev, 0x66, 0x08);
-    // busWrite(busDev, 0x63, 0x78);
-    // busWrite(busDev, 0x7F, 0x15);
-    // busWrite(busDev, 0x48, 0x58);
-    // busWrite(busDev, 0x7F, 0x07);
-    // busWrite(busDev, 0x41, 0x0D);
-    // busWrite(busDev, 0x43, 0x14);
-    // busWrite(busDev, 0x4B, 0x0E);
-    // busWrite(busDev, 0x45, 0x0F);
-    // busWrite(busDev, 0x44, 0x42);
-    // busWrite(busDev, 0x4C, 0x80);
-    // busWrite(busDev, 0x7F, 0x10);
-    // busWrite(busDev, 0x5B, 0x02);
-    // busWrite(busDev, 0x7F, 0x07);
-    // busWrite(busDev, 0x40, 0x41);
-    // busWrite(busDev, 0x70, 0x00);
-    // delay(100);
-    // busWrite(busDev, 0x32, 0x44);
-    // busWrite(busDev, 0x7F, 0x07);
-    // busWrite(busDev, 0x40, 0x40);
-    // busWrite(busDev, 0x7F, 0x06);
-    // busWrite(busDev, 0x62, 0xf0);
-    // busWrite(busDev, 0x63, 0x00);
-    // busWrite(busDev, 0x7F, 0x0D);
-    // busWrite(busDev, 0x48, 0xC0);
-    // busWrite(busDev, 0x6F, 0xd5);
-    // busWrite(busDev, 0x7F, 0x00);
-    // busWrite(busDev, 0x5B, 0xa0);
-    // busWrite(busDev, 0x4E, 0xA8);
-    // busWrite(busDev, 0x5A, 0x50);
-    // busWrite(busDev, 0x40, 0x80);
 }
 
-static bool pmw3901OpflowUpdate(opflowData_t *data)
+bool pmw3901OpflowUpdate(opflowDev_t *dev)
 {
-    // static timeUs_t previousTimeUs = 0;
-    // const timeUs_t currentTimeUs = micros();
+    busDevice_t *busDev = dev->busDev;
+    opflowData_t *data;
+    static timeUs_t previousTimeUs = 0;
+    const timeUs_t currentTimeUs = micros();
 
-    // bool newPacket = false;
-    // opflowData_t tmpData = {0};
+    bool newPacket = false;
+    opflowData_t tmpData = {0};
+
+    uint8_t chipId = 1;
+    busRead(busDev, 0x00, &chipId);
+    uint8_t dIpihc = 1;
+    busRead(busDev, 0x5F, &dIpihc);
+
+    DEBUG_SET(DEBUG_FLOW_RAW, 6, (chipId));
+    DEBUG_SET(DEBUG_FLOW_RAW, 7, (dIpihc));
+    
+    DEBUG_SET(DEBUG_FLOW_RAW, 3, currentTimeUs%255);
 
     // while (serialRxBytesWaiting(flowPort) > 0)
     // {
@@ -269,17 +220,17 @@ static bool pmw3901OpflowUpdate(opflowData_t *data)
     //     }
     // }
 
-    // if (newPacket)
-    // {
-    //     *data = tmpData;
-    // }
+    if (newPacket)
+    {
+        *data = tmpData;
+    }
 
     return newPacket;
 }
 
-virtualOpflowVTable_t opflowPmw3901Vtable = {
-    .detect = pmw3901OpflowDetect,
-    .init = pmw3901OpflowInit,
-    .update = pmw3901OpflowUpdate};
+// virtualOpflowVTable_t opflowPmw3901Vtable = {
+//     .detect = pmw3901OpflowDetect,
+//     .init = pmw3901OpflowInit,
+//     .update = pmw3901OpflowUpdate};
 
 #endif
