@@ -166,12 +166,10 @@ bool pmw3901OpflowInit(opflowDev_t *dev)
     spiConfigureWithSpeed(SPI_BAUDRATE_2MHZ);
     busSetSpeed(busDev, BUS_SPEED_FAST);
 
-    delay(50);
-
-    // Device Reset
-    PMW3901_Write(busDev, PMW3901_REG_RESET, PMW3901_REG_RESET_SET_VALUE);
-    delay(50);
-
+    spiBusDeselectDevice(busDev);
+    spiBusSelectDevice(busDev);
+    spiBusDeselectDevice(busDev);
+    
     //timeUs_t
     uint8_t chipId[1]={100};
     uint8_t dipihc[1]={100};
@@ -185,6 +183,11 @@ bool pmw3901OpflowInit(opflowDev_t *dev)
     DEBUG_SET(DEBUG_FLOW_RAW, 4, (chipId[0]));
     DEBUG_SET(DEBUG_FLOW_RAW, 5, (dipihc[0]));
     // delayMicroseconds(15);
+    delay(50);
+    // Device Reset
+    PMW3901_Write(busDev, PMW3901_REG_RESET, PMW3901_REG_RESET_SET_VALUE);
+    delay(50);
+
     delay(5);
     pmw3901RegisterInit(dev);
     delay(5);
