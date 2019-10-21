@@ -26,6 +26,7 @@
 
 #include "drivers/opflow/opflow.h"
 
+static void spiConfigureWithSpeed(const busDevice_t *dev, uint16_t baudRatePrescaler);
 bool pmw3901OpflowDetect(opflowDev_t *dev);
 bool pmw3901OpflowInit(opflowDev_t *dev);
 void pmw3901RegisterInit(opflowDev_t *dev);
