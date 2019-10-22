@@ -226,23 +226,32 @@
 
 // SPI3: OpFLOW PMW3901  (other SPI3 device:BMP280)
 #define PMW3901_SPI_BUS         BUS_SPI3
-#define PMW3901_CS_PIN          PD2
+//#define PMW3901_CS_PIN          PD2
+#define PMW3901_CS_PIN          SPI3_NSS_PIN
 
 //sd--
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define USE_SDCARD
-#define USE_SDCARD_SPI
+#if defined(DYSF4PRO) || defined(DYSF4PROV2)
+  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+  #define M25P16_CS_PIN           SPI3_NSS_PIN
+  #define M25P16_SPI_BUS          BUS_SPI3
+  #define USE_FLASHFS
+  #define USE_FLASH_M25P16
+#else
+  #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+  #define USE_SDCARD
+  #define USE_SDCARD_SPI
 
-#define SDCARD_SPI_BUS        BUS_SPI2
-#define SDCARD_CS_PIN         SPI2_NSS_PIN
+  #define SDCARD_SPI_BUS        BUS_SPI2
+  #define SDCARD_CS_PIN         SPI2_NSS_PIN
 
-#define SDCARD_DETECT_PIN     PB7
-#define SDCARD_DETECT_INVERTED
+  #define SDCARD_DETECT_PIN     PB7
+  #define SDCARD_DETECT_INVERTED
+#endif
+//sd-- end
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-//sd-- end
 
 #ifdef DYSF4PRO
     #define ADC_CHANNEL_3_PIN               PC3

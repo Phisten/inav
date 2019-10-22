@@ -61,18 +61,35 @@
 //#define SPI                      SPI3
 #define SPI_BAUDRATE_2MHZ   SPI_BaudRatePrescaler_64    // 1.3125MHz
 
-// static bool isInit = false;
+#define OULIER_LIMIT 100
 
-// typedef struct __attribute__((packed))
-// {
-//     uint8_t header; // 0xFE
-//     uint8_t res0;   // Seems to be 0x04 all the time
-//     int16_t motionX;
-//     int16_t motionY;
-//     int8_t motionT; // ???
-//     uint8_t squal;  // Not sure about this
-//     uint8_t footer; // 0xAA
-// } pmw3901Packet_t;
+typedef struct motionBurst_s {
+  union {
+    uint8_t motion;
+    struct {
+      uint8_t frameFrom0    : 1;
+      uint8_t runMode       : 2;
+      uint8_t reserved1     : 1;
+      uint8_t rawFrom0      : 1;
+      uint8_t reserved2     : 2;
+      uint8_t motionOccured : 1;
+    };
+  };
+
+  uint8_t observation;
+  int16_t deltaX;
+  int16_t deltaY;
+
+  uint8_t squal;
+
+  uint8_t rawDataSum;
+  uint8_t maxRawData;
+  uint8_t minRawData;
+
+  uint16_t shutter;
+} __attribute__((packed)) motionBurst_t;
+
+
 static bool isInit = false;
 
 // SPI Func Port -----------------------------------------------------
@@ -84,7 +101,6 @@ static void spiConfigureWithSpeed(const busDevice_t * dev,uint16_t baudRatePresc
 
     SPI_InitTypeDef SPI_InitStructure;
 
-    //SPI2
     SPI_I2S_DeInit(instance);
 
     SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
@@ -101,8 +117,7 @@ static void spiConfigureWithSpeed(const busDevice_t * dev,uint16_t baudRatePresc
     SPI_InitStructure.SPI_CRCPolynomial = 0; // Not used
 
     SPI_InitStructure.SPI_BaudRatePrescaler = baudRatePrescaler;
-    
-    //SPI2
+
     SPI_Init(instance, &SPI_InitStructure);
 
     SPI_Cmd(instance, DISABLE);
@@ -173,6 +188,7 @@ bool pmw3901OpflowDetect(opflowDev_t *dev)
     }
     dev->initFn = pmw3901OpflowInit;
     dev->updateFn = pmw3901OpflowUpdate;
+    
     return true;
 }
 
@@ -202,7 +218,7 @@ bool pmw3901OpflowInit(opflowDev_t *dev)
     DEBUG_SET(DEBUG_FLOW_RAW, 4, (chipId[0]));
     DEBUG_SET(DEBUG_FLOW_RAW, 5, (dipihc[0]));
     
-    if (chipId == 0x49 && dipihc == 0xB6)
+    if (chipId[0] == 0x49u && dipihc[0] == 0xB6u)
     {
         // Device Reset
         PMW3901_Write(busDev, PMW3901_REG_RESET, PMW3901_REG_RESET_SET_VALUE);
@@ -225,8 +241,8 @@ bool pmw3901OpflowInit(opflowDev_t *dev)
 
 void pmw3901RegisterInit(opflowDev_t *dev)
 {
-    //DEBUG_SET(DEBUG_FLOW_RAW, 6, 4);
     busDevice_t *busDev = dev->busDev;
+    
     PMW3901_Write(busDev, 0x7F, 0x00);
     PMW3901_Write(busDev, 0x61, 0xAD);
     PMW3901_Write(busDev, 0x7F, 0x03);
@@ -242,59 +258,118 @@ void pmw3901RegisterInit(opflowDev_t *dev)
     PMW3901_Write(busDev, 0x44, 0x1B);
     PMW3901_Write(busDev, 0x40, 0xBF);
     PMW3901_Write(busDev, 0x4E, 0x3F);
+
+    PMW3901_Write(busDev, 0x7F, 0x08);
+    PMW3901_Write(busDev, 0x65, 0x20);
+    PMW3901_Write(busDev, 0x6A, 0x18);
+    PMW3901_Write(busDev, 0x7F, 0x09);
+    PMW3901_Write(busDev, 0x4F, 0xAF);
+    PMW3901_Write(busDev, 0x5F, 0x40);
+    PMW3901_Write(busDev, 0x48, 0x80);
+    PMW3901_Write(busDev, 0x49, 0x80);
+    PMW3901_Write(busDev, 0x57, 0x77);
+    PMW3901_Write(busDev, 0x60, 0x78);
+    PMW3901_Write(busDev, 0x61, 0x78);
+    PMW3901_Write(busDev, 0x62, 0x08);
+    PMW3901_Write(busDev, 0x63, 0x50);
+    PMW3901_Write(busDev, 0x7F, 0x0A);
+    PMW3901_Write(busDev, 0x45, 0x60);
+    PMW3901_Write(busDev, 0x7F, 0x00);
+    PMW3901_Write(busDev, 0x4D, 0x11);
+    PMW3901_Write(busDev, 0x55, 0x80);
+    PMW3901_Write(busDev, 0x74, 0x1F);
+    PMW3901_Write(busDev, 0x75, 0x1F);
+    PMW3901_Write(busDev, 0x4A, 0x78);
+    PMW3901_Write(busDev, 0x4B, 0x78);
+    PMW3901_Write(busDev, 0x44, 0x08);
+    PMW3901_Write(busDev, 0x45, 0x50);
+    PMW3901_Write(busDev, 0x64, 0xFF);
+    PMW3901_Write(busDev, 0x65, 0x1F);
+    PMW3901_Write(busDev, 0x7F, 0x14);
+    PMW3901_Write(busDev, 0x65, 0x67);
+    PMW3901_Write(busDev, 0x66, 0x08);
+    PMW3901_Write(busDev, 0x63, 0x70);
+    PMW3901_Write(busDev, 0x7F, 0x15);
+    PMW3901_Write(busDev, 0x48, 0x48);
+    PMW3901_Write(busDev, 0x7F, 0x07);
+    PMW3901_Write(busDev, 0x41, 0x0D);
+    PMW3901_Write(busDev, 0x43, 0x14);
+    PMW3901_Write(busDev, 0x4B, 0x0E);
+    PMW3901_Write(busDev, 0x45, 0x0F);
+    PMW3901_Write(busDev, 0x44, 0x42);
+    PMW3901_Write(busDev, 0x4C, 0x80);
+    PMW3901_Write(busDev, 0x7F, 0x10);
+    PMW3901_Write(busDev, 0x5B, 0x02);
+    PMW3901_Write(busDev, 0x7F, 0x07);
+    PMW3901_Write(busDev, 0x40, 0x41);
+    PMW3901_Write(busDev, 0x70, 0x00);
+
+    delay(10); // delay 10ms
+
+    PMW3901_Write(busDev, 0x32, 0x44);
+    PMW3901_Write(busDev, 0x7F, 0x07);
+    PMW3901_Write(busDev, 0x40, 0x40);
+    PMW3901_Write(busDev, 0x7F, 0x06);
+    PMW3901_Write(busDev, 0x62, 0xF0);
+    PMW3901_Write(busDev, 0x63, 0x00);
+    PMW3901_Write(busDev, 0x7F, 0x0D);
+    PMW3901_Write(busDev, 0x48, 0xC0);
+    PMW3901_Write(busDev, 0x6F, 0xD5);
+    PMW3901_Write(busDev, 0x7F, 0x00);
+    PMW3901_Write(busDev, 0x5B, 0xA0);
+    PMW3901_Write(busDev, 0x4E, 0xA8);
+    PMW3901_Write(busDev, 0x5A, 0x50);
+    PMW3901_Write(busDev, 0x40, 0x80);
+
+    PMW3901_Write(busDev, 0x7F, 0x00);
+    PMW3901_Write(busDev, 0x5A, 0x10);
+    PMW3901_Write(busDev, 0x54, 0x00);
 }
 
 bool pmw3901OpflowUpdate(opflowDev_t *dev)
 {
     busDevice_t *busDev = dev->busDev;
-    opflowData_t *data;
-    //static timeUs_t previousTimeUs = 0;
+
+    static timeUs_t previousTimeUs = 0;
     const timeUs_t currentTimeUs = micros();
 
     bool newPacket = false;
     opflowData_t tmpData = {0};
 
+    //read data
     uint8_t address = 0x16;
     
-    //spiConfigureWithSpeed(busDev,SPI_BAUDRATE_2MHZ);
+    spiBusSelectDevice(busDev);
+    delayMicroseconds(50);
 
-    // uint8_t dIpihc[2] = {100,100};
-    // PMW3901_Read(busDev, 0x5F, dIpihc);
-    // delayMicroseconds(200);
+    SPI_TypeDef * instance = spiInstanceByDevice(busDev->busdev.spi.spiBus);
+    spiTransferByte(instance, address);
+    motionBurst_t motion;
+    spiTransfer(instance, (uint8_t*)&motion, (uint8_t*)&motion,sizeof(motionBurst_t));
     
-    //DEBUG_SET(DEBUG_FLOW_RAW, 3, currentTimeUs%255);
-    //DEBUG_SET(DEBUG_FLOW_RAW, 2, busDev->busdev.spi.csnPin);
-    //536907740 PD2?
+    delayMicroseconds(50);
+    spiBusDeselectDevice(busDev);
 
+    //port data
+    if (abs(motion.deltaX) < OULIER_LIMIT && abs(motion.deltaY) < OULIER_LIMIT) {
+        tmpData.deltaTime += (currentTimeUs - previousTimeUs);
+        tmpData.flowRateRaw[0] += motion.deltaX;
+        tmpData.flowRateRaw[1] += motion.deltaY;
+        tmpData.flowRateRaw[2] = 0;
+        tmpData.quality = (constrain(motion.squal, 64, 78) - 64) * 100 / 14;
+        previousTimeUs = currentTimeUs;
+        newPacket = true;
+
+        uint16_t realShutter = (motion.shutter >> 8) & 0x0FF;
+        realShutter |= (motion.shutter & 0x0ff) << 8;
+        motion.shutter = realShutter;
+    }
     if (newPacket)
     {
-        *data = tmpData;
+        dev->rawData = tmpData;
     }
 
     return newPacket;
 }
-
-
-
-// void pmw3901ReadMotion(uint32_t csPin, motionBurst_t * motion)
-// {
-//   uint8_t address = 0x16;
-
-//   spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-//   digitalWrite(csPin,LOW);
-//   sleepus(50);
-//   spiExchange(1, &address, &address);
-//   sleepus(50);
-//   spiExchange(sizeof(motionBurst_t), (uint8_t*)motion, (uint8_t*)motion);
-//   sleepus(50);
-//   digitalWrite(csPin, HIGH);
-//   spiEndTransaction();
-//   sleepus(50);
-
-//   uint16_t realShutter = (motion->shutter >> 8) & 0x0FF;
-//   realShutter |= (motion->shutter & 0x0ff) << 8;
-//   motion->shutter = realShutter;
-// }
-
 
 #endif
