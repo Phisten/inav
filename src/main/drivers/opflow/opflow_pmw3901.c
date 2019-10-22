@@ -126,9 +126,6 @@ static void spiConfigureWithSpeed(const busDevice_t * dev,uint16_t baudRatePresc
     tempRegister |= baudRatePrescaler;
     instance->CR1 = tempRegister;
     SPI_Cmd(instance, ENABLE);
-
-    //todo:nss HIGH
-
 }
 
 

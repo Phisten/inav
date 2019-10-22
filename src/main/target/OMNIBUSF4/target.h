@@ -226,8 +226,7 @@
 
 // SPI3: OpFLOW PMW3901  (other SPI3 device:BMP280)
 #define PMW3901_SPI_BUS         BUS_SPI3
-//#define PMW3901_CS_PIN          PD2
-#define PMW3901_CS_PIN          SPI3_NSS_PIN
+#define PMW3901_CS_PIN          PD2
 
 //sd--
 #if defined(DYSF4PRO) || defined(DYSF4PROV2)
