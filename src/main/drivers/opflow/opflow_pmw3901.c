@@ -350,8 +350,8 @@ bool pmw3901OpflowUpdate(opflowDev_t *dev)
     //port data
     if (abs(motion.deltaX) < OULIER_LIMIT && abs(motion.deltaY) < OULIER_LIMIT) {
         tmpData.deltaTime += (currentTimeUs - previousTimeUs);
-        tmpData.flowRateRaw[0] += motion.deltaX;
-        tmpData.flowRateRaw[1] += motion.deltaY;
+        tmpData.flowRateRaw[0] += -motion.deltaX;
+        tmpData.flowRateRaw[1] += -motion.deltaY;
         tmpData.flowRateRaw[2] = 0;
         tmpData.quality = (constrain(motion.squal, 64, 78) - 64) * 100 / 14;
         previousTimeUs = currentTimeUs;
