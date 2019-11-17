@@ -49,6 +49,8 @@
 #define USE_BLACKBOX
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
+#define USE_UWB
+#define USE_UWB_DWM1000
 #define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM

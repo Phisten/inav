@@ -133,6 +133,7 @@ COMMON_SRC = \
             sensors/compass.c \
             sensors/diagnostics.c \
             sensors/gyro.c \
+            sensors/uwb.c \
             sensors/initialisation.c \
             uav_interconnect/uav_interconnect_bus.c \
             uav_interconnect/uav_interconnect_rangefinder.c \

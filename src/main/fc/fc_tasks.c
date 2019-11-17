@@ -78,6 +78,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/uwb.h"
 
 #include "telemetry/telemetry.h"
 
@@ -212,6 +213,16 @@ void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_UWB
+void taskUpdateUWB(timeUs_t currentTimeUs)
+{
+    //if (!sensors(SENSOR_UWB))
+    //    return;
+
+    uwbUpdate(currentTimeUs);
+}
+#endif
+
 #ifdef USE_DASHBOARD
 void taskDashboardUpdate(timeUs_t currentTimeUs)
 {
@@ -324,6 +335,9 @@ void fcTasksInit(void)
 #endif
 #ifdef USE_OPFLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
+#endif
+#ifdef USE_OPFLOW
+    setTaskEnabled(TASK_UWB, sensors(SENSOR_UWB));
 #endif
 #ifdef USE_VTX_CONTROL
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
@@ -513,6 +527,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OPFLOW] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB/UART sensor will work at lower rate w/o accumulation
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_UWB
+    [TASK_UWB] = {
+        .taskName = "UWB",
+        .taskFunc = taskUpdateUWB,
         .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB/UART sensor will work at lower rate w/o accumulation
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },

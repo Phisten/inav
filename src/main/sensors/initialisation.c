@@ -35,6 +35,7 @@
 #include "sensors/compass.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/uwb.h"
 #include "sensors/temperature.h"
 #include "sensors/initialisation.h"
 
@@ -74,6 +75,10 @@ bool sensorsAutodetect(void)
 
 #ifdef USE_OPFLOW
     opflowInit();
+#endif
+    
+#ifdef USE_UWB
+    uwbInit();
 #endif
 
     if (accelerometerConfig()->acc_hardware == ACC_AUTODETECT) {
